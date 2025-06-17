@@ -61,9 +61,9 @@ export const setupSocketHandlers = (io: Server) => {
     socket.on("send_message", async ({ sessionId, message }) => {
       try {
         message.timestamp = Date.now();
+        console.log(`📩 Message sent in session ${sessionId}:`, message);
         await sessionManager.addMessage(sessionId, message);
         io.to(sessionId).emit("new_message", message);
-
         await sendToModeration({
           sessionId,
           message,

@@ -1,0 +1,70 @@
+name: Samvaad Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build and Test All Services
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: samvaad
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/samvaad
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies (Debate Management Service)
+        working-directory: ./services/debate-management
+        run: npm ci
+
+      - name: Run Prisma generate & migrate (Debate Management)
+        working-directory: ./services/debate-management
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Run tests (Debate Management)
+        working-directory: ./services/debate-management
+        run: npm test
+
+      - name: Install dependencies (Auth Service)
+        working-directory: ./services/auth
+        run: npm ci
+
+      - name: Run tests (Auth Service)
+        working-directory: ./services/auth
+        run: npm test
+
+      - name: Install dependencies (Notification Service)
+        working-directory: ./services/notification
+        run: npm ci
+
+      - name: Run tests (Notification Service)
+        working-directory: ./services/notification
+        run: npm test

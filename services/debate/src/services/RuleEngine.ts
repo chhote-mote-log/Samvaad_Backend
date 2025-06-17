@@ -1,36 +1,36 @@
 // src/services/RuleEngine.ts
 
 import { sessionManager } from './SessionManager';
-
+import { saveSessionToRedis } from './SessionManager';
 type DebateType = 'text' | 'audio' | 'video';
 type DebateCategory = 'professional' | 'unprofessional';
 type DebateStatus = 'waiting' | 'in_progress' | 'ended';
 
-interface ParticipantState {
-  userId: string;
-  lastSpokeAt?: number;
-  hasSpoken?: boolean;
-  disqualified?: boolean;
-}
+// interface ParticipantState {
+//   userId: string;
+//   lastSpokeAt?: number;
+//   hasSpoken?: boolean;
+//   disqualified?: boolean;
+// }
 
-interface DebateSession {
-  sessionId: string;
-  type: DebateType;
-  category: DebateCategory;
-  aiEnabled: boolean;
-  durationMins: number;
-  status: DebateStatus;
-  participants: Record<string, ParticipantState>;
-  currentTurn: string | null;
-  turnStartedAt: number | null;
-  rules: {
-    turnDurationSecs: number;
-    allowChat: boolean;
-    allowVoice: boolean;
-    relaxedMode?: boolean;
-  };
-  messages: DebateMessage[];
-}
+// interface DebateSession {
+//   sessionId: string;
+//   type: DebateType;
+//   category: DebateCategory;
+//   aiEnabled: boolean;
+//   durationMins: number;
+//   status: DebateStatus;
+//   participants: Record<string, ParticipantState>;
+//   currentTurn: string | null;
+//   turnStartedAt: number | null;
+//   rules: {
+//     turnDurationSecs: number;
+//     allowChat: boolean;
+//     allowVoice: boolean;
+//     relaxedMode?: boolean;
+//   };
+//   messages: DebateMessage[];
+// }
 
 interface DebateMessage {
   senderId: string;
@@ -105,12 +105,25 @@ export class RuleEngine {
   }
 
   static async disqualifyUser(sessionId: string, userId: string): Promise<void> {
-    const session = await sessionManager.getSession(sessionId);
-    const participant = session.participants.find(p => p.id === userId);
-    if (session && participant) {
-      participant.disqualified = true;
-    }
+  const session = await sessionManager.getSession(sessionId);
+
+  if (!session) {
+    throw new Error(`Session with id ${sessionId} not found.`);
   }
+
+  const participant = session.participants.find(p => p.id === userId);
+
+  if (!participant) {
+    throw new Error(`Participant with id ${userId} not found in session ${sessionId}.`);
+  }
+
+  participant.disqualified = true;
+  await saveSessionToRedis(sessionId, session); // Save back if using Redis
+
+  // Optionally emit event or log
+  console.log(`Participant ${userId} disqualified from session ${sessionId}`);
+}
+
 
   static async isDebateOver(sessionId: string): Promise<boolean> {
     const session = await sessionManager.getSession(sessionId);

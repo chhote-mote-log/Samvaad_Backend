@@ -1,6 +1,6 @@
 //resultEvaluator.ts
 import { dbConnector } from './DBConnector';
-import { DebateSession, DebateParticipant } from './SessionManager';
+import { DebateSession, DebateParticipant } from '../utils/types';
 
 export interface EvaluationResult {
   winnerId: string | null; // null means draw

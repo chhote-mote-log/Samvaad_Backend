@@ -1,7 +1,7 @@
 // controller/debateController.ts
 import { Request, Response } from 'express';
 import { sessionManager } from '../services/SessionManager';
-import { DebateParticipant, DebateMessage } from '../services/SessionManager';
+import { DebateParticipant, DebateMessage } from '../utils/types';
 import { participantTracker } from '../services/ParticipantTracker';
 
  const DebateController = {
