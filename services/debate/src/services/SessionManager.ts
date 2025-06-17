@@ -15,6 +15,9 @@ export interface DebateParticipant {
   role: "pro" | "con";
   isConnected: boolean;
   score: number;
+  disqualified?: boolean;
+  lastSpokeAt?: number;
+  hasSpoken?: boolean;
 }
 
 export interface ChatMessage {
@@ -29,19 +32,58 @@ export interface DebateMessage {
   timestamp: number;
   type: "chat" | "voice" | "video";
 }
+export type DebateType = 'text' | 'audio' | 'video';
+export type DebateCategory = 'professional' | 'unprofessional';
+export type DebateStatus = 'waiting' | 'in_progress' | 'ended';
+
+export interface ParticipantState {
+  userId: string;
+  lastSpokeAt?: number;
+  hasSpoken?: boolean;
+  disqualified?: boolean;
+}
+
+export interface DebateMessage {
+  senderId: string;
+  content: string;
+  timestamp: number;
+  type: 'chat' | 'voice' | 'video';
+}
 
 export interface DebateSession {
   sessionId: string;
-  participants: DebateParticipant[];
-  chatMessages: ChatMessage[];
-  messages: DebateMessage[];
-  currentTurn: string; // participant.id who has the turn
+  type: DebateType;
+  category: DebateCategory;
+  durationMins: number;
   state: SessionState;
+  participants: DebateParticipant[];
+  currentTurn: string | null;
+  turnStartedAt: number | null;
   startTime: number | null;
   endTime: number | null;
   pausedAt: number | null;
   totalPausedDuration: number;
+  rules: {
+    turnDurationSecs: number;
+    allowChat: boolean;
+    allowVoice: boolean;
+    relaxedMode?: boolean;
+  };
+  messages: DebateMessage[];
+  chatMessages: ChatMessage[];
 }
+// export interface DebateSession {
+//   sessionId: string;
+//   participants: DebateParticipant[];
+  // chatMessages: ChatMessage[];
+//   messages: DebateMessage[];
+//   currentTurn: string; // participant.id who has the turn
+//   state: SessionState;
+//   startTime: number | null;
+//   endTime: number | null;
+//   pausedAt: number | null;
+//   totalPausedDuration: number;
+// }
 
 // In-memory session store (replace with Redis for scaling)
 const debateSessions: Record<string, DebateSession> = {};
@@ -134,8 +176,18 @@ class SessionManager extends EventEmitter {
       const session: DebateSession = {
         sessionId,
         participants: [participant1, participant2],
+        type: "text", // Default type, can be changed later
+        category: "professional", // Default category, can be changed later
+        durationMins: 30, // Default duration, can be changed later
         messages: [],
         chatMessages: [],
+        turnStartedAt: null,
+        rules: {
+          turnDurationSecs: 60,
+          allowChat: true,
+          allowVoice: true,
+          relaxedMode: true,
+        },
         currentTurn: participant1.id,
         state: "waiting",
         startTime: null,
