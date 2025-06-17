@@ -1,0 +1,16 @@
+# Node modules and local build
+node_modules
+dist
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# OS junk
+.DS_Store
+
+# Env files
+
+
+

@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "@prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id                     String   @id @default(uuid())
+  username               String   @unique
+  email                  String   @unique
+  password_hash          String
+  full_name              String
+  bio                    String?
+  avatar_url             String?
+  gender                 String?
+  dob                    DateTime?
+  country                String?
+  language               String?
+  account_type           String   @default("regular")
+  is_verified            Boolean  @default(false)
+  is_online              Boolean  @default(false)
+  socket_id              String?
+  level                  Int      @default(1)
+  rank                   String   @default("Bronze")
+  elo_rating             Int      @default(1000)
+  xp                     Int      @default(0)
+  total_debates          Int      @default(0)
+  wins                   Int      @default(0)
+  losses                 Int      @default(0)
+  preferred_modes        Json?
+  preferred_types        Json?
+  notification_settings  Json?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+  last_active_at         DateTime?
+  banned_until           DateTime?
+  oauth_provider         String?
+  oauth_id               String?
+  ai_feedback_enabled    Boolean  @default(true)
+}

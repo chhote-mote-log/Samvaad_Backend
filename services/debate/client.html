@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Samvaad Test Client</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>🧠 Samvaad Debate Client</h1>
+  <p>Check the console for real-time updates</p>
+
+  <button onclick="joinSession()">Join Session</button>
+  <button onclick="sendMessage()">Send Message</button>
+
+  <script>
+    const sessionId = "test-session-001";
+    const userId = "user-001";
+
+    const socket = io("http://localhost:4006", {
+      transports: ["websocket"]
+    });
+
+    socket.on("connect", () => {
+      console.log("✅ Connected with ID:", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("❌ Disconnected");
+    });
+
+    function joinSession() {
+      socket.emit("join_session", sessionId);
+      console.log("🧍 Joined session:", sessionId);
+    }
+
+    function sendMessage() {
+      const message = {
+        userId,
+        content: "🔥 Hello from test client",
+        type: "text"
+      };
+
+      socket.emit("send_message", { sessionId, message });
+      console.log("📨 Message sent:", message);
+    }
+
+    socket.on("new_message", (msg) => {
+      console.log("📩 New Message Received:", msg);
+    });
+
+    socket.on("moderation_feedback", (data) => {
+      console.log("🛡️ AI Moderation Feedback:", data);
+    });
+
+    socket.on("mute", () => {
+      console.log("🔇 You have been muted");
+    });
+
+    socket.on("unmute", () => {
+      console.log("🎤 You have been unmuted");
+    });
+
+    socket.on("unmute-user", ({ userId }) => {
+      console.log("🔊 Unmute User:", userId);
+    });
+
+    socket.on("session_state", (data) => {
+      console.log("🧠 Current Session State:", data);
+    });
+
+    socket.on("system_message", (msg) => {
+      console.log("📢 System Message:", msg.message);
+    });
+  </script>
+</body>
+</html>

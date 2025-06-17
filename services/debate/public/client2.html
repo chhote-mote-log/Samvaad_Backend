@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Chat</title>
+  <style>
+    #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; margin-bottom: 10px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Chat Room - Client 1</h2>
+  <div id="chat"></div>
+  <input id="msgInput" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io("http://host.docker.internal:4006");
+    const sessionId = "room1";
+    const userId = "user1";
+
+    socket.emit("join_session", sessionId);
+
+    socket.on("new_message", (msg) => {
+      const chat = document.getElementById("chat");
+      const el = document.createElement("div");
+      el.textContent = `${msg.userId}: ${msg.content}`;
+      chat.appendChild(el);
+    });
+
+    function sendMessage() {
+      const input = document.getElementById("msgInput");
+      const content = input.value;
+      socket.emit("send_message", {
+        sessionId,
+        message: {
+          userId,
+          content
+        }
+      });
+      input.value = "";
+    }
+  </script>
+</body>
+</html>

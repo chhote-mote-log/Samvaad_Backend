@@ -1,0 +1,121 @@
+
+
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:7.4.0
+
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - samvaad-network
+   
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+       
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+   
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 60000
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 60000
+    networks:
+      - samvaad-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  matchmaking:
+    build:
+      context: ./services/matchmaking
+    ports:
+      - "4004:4004"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - DATABASE_URL=postgresql://postgres:Pandey%40123@host.docker.internal:5432/matchmaking_log?schema=public
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - samvaad-network
+  # auth:
+  #   build:
+  #     context: ./services/auth
+  #   ports:
+  #     - "4000:4000"
+  #   environment:
+  #     - KAFKA_BROKER=kafka:9092
+  #     - JWT_SECRET=super_secret_key
+  #     - DATABASE_URL=postgresql://postgres:Pandey%40123@host.docker.internal:5432/samvaad_auth?schema=public
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   networks:
+  #     - samvaad-network
+  debate:
+    build:
+      context: ./services/debate
+    ports:
+      - "4006:4006"
+      - "5555:5555"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - DATABASE_URL=postgresql://postgres:Pandey%40123@host.docker.internal:5432/dbname?schema=public
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - samvaad-network
+  debate-management:
+    build:
+      context: ./services/debate-management
+    ports:
+      - "4002:4002"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - DATABASE_URL=postgresql://postgres:Pandey%40123@host.docker.internal:5432/debate?schema=public
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - samvaad-network   
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - samvaad-network
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:latest
+  #   container_name: kafka-ui
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: samvaad-cluster
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+  #     KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+  #   depends_on:
+  #     - kafka
+  #     - zookeeper
+  #   networks:
+  #     - samvaad-network
+networks:
+  samvaad-network:
+    driver: bridge

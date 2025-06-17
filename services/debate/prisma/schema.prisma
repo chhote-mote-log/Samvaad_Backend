@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+ 
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model DebateSession {
+  id                  String             @id @default(uuid())
+  currentTurn         String
+  state               String
+  startTime           BigInt?
+  endTime             BigInt?
+  pausedAt            BigInt?
+  totalPausedDuration BigInt             @default(0)
+  participants        DebateParticipant[]
+  messages            DebateMessage[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime?           @updatedAt
+}
+
+model DebateParticipant {
+  id          String          @id @default(uuid())
+  name        String
+  role        String
+  isConnected Boolean         @default(true)
+  score       Int             @default(0)
+  session     DebateSession   @relation(fields: [sessionId], references: [id])
+  sessionId   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime?        @updatedAt
+
+  @@index([sessionId])
+}
+
+model DebateMessage {
+  id        String        @id @default(uuid())
+  senderId  String
+  content   String
+  timestamp BigInt
+  type      MessageType
+  session   DebateSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+  createdAt DateTime      @default(now())
+
+  @@index([sessionId])
+}
+
+
+
+enum MessageType {
+  chat
+  voice
+  video
+}

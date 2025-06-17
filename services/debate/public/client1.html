@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Socket.IO Test Client</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>Socket.IO Test Client</h1>
+  <p id="status">Connecting...</p>
+
+  <button onclick="joinSession()">Join Session</button>
+  <button onclick="sendMessage()">Send Message</button>
+
+  <div id="messages"></div>
+
+  <script>
+    const socket = io('http://localhost:4006'); // match server port
+
+    socket.on('connect', () => {
+      document.getElementById('status').innerText = '✅ Connected to Socket Server';
+      console.log('Connected:', socket.id);
+    });
+
+    socket.on('session_state', (session) => {
+      console.log('Session state:', session);
+    });
+
+    socket.on('new_message', (msg) => {
+      const div = document.createElement('div');
+      div.innerText = `[Message] ${msg.senderId}: ${msg.content}`;
+      document.getElementById('messages').appendChild(div);
+    });
+
+    socket.on('mute', () => {
+      alert('🔇 You are muted');
+    });
+
+    socket.on('unmute-user', ({ userId }) => {
+      alert(`🎙️ ${userId} is unmuted`);
+    });
+
+    socket.on('error', (errMsg) => {
+      alert(`❌ Error: ${errMsg}`);
+    });
+
+    function joinSession() {
+      const sessionId = prompt("Enter Session ID:");
+      const senderId = prompt("Enter Your User ID:");
+      socket.emit('join_session', { sessionId, userId:senderId }); 
+    }
+
+    function sendMessage() {
+      const sessionId = prompt("Enter Session ID:");
+      const senderId = prompt("Enter Your User ID:");
+      const content = prompt("Enter message:");
+      
+      socket.emit('send_message', {
+        sessionId,
+        message: {
+          senderId,
+          content,
+          timestamp: Date.now(),
+          type: 'chat'
+        }
+      });
+    }
+  </script>
+</body>
+</html>

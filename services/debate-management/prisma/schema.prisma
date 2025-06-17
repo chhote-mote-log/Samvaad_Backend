@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DebateType {
+  PROFESSIONAL
+  UNPROFESSIONAL
+}
+
+enum DebateMode {
+  TEXT
+  AUDIO
+  VIDEO
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum DebateStatus {
+  WAITING
+  ACTIVE
+  ENDED
+}
+
+model Debate {
+  id              String     @id @default(uuid())
+  title           String
+  topic           String
+  type            String
+  mode            String
+  chat_enabled    Boolean
+  participants       DebateParticipant[]
+  visibility      String
+  duration_minutes Int
+  ai_moderation   Boolean
+  created_by      String
+  status          String
+  created_at      DateTime   @default(now())
+  started_at      DateTime?
+  ended_at        DateTime?
+  ai_summary      String?
+  winner_id       String?
+  xp_reward       Int
+  tags            String[]   // text[]
+  language        String
+  views_count     Int        @default(0)
+  is_archived     Boolean    @default(false)
+  scheduled_for   DateTime?
+  ai_winner_id    String?
+  toxicity_score  Decimal?   // numeric
+  recording_url   String?
+
+  @@map("debates") // optional: maps model to actual table name
+}
+
+model DebateParticipant {
+  id         Int      @id @default(autoincrement())
+  debate_id  String
+  user_id    String
+  role       String
+  is_winner  Boolean
+  joined_at  DateTime
+  position   String
+  score      Int
+  left_at    DateTime?
+  feedback   String?
+  is_host    Boolean
+  xp_earned  Int
+
+  debate     Debate   @relation(fields: [debate_id], references: [id], onDelete: Cascade)
+
+
+  @@map("debate_participants")
+}
+
