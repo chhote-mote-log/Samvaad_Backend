@@ -1,8 +1,9 @@
+// src/kafka/kafkaClient.ts
 import { Kafka } from 'kafkajs';
 
-export const kafka = new Kafka({
+const kafka = new Kafka({
   clientId: 'ai-moderation-service',
-  brokers: ['localhost:9092'], // or your broker
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092'],
 });
 
 export const producer = kafka.producer();

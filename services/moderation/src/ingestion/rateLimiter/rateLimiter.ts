@@ -1,3 +1,5 @@
+// src/ingestion/rateLimiter/rateLimiter.ts
+// src: services/moderation/src/ingestion/rateLimiter/rateLimiter.ts
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
 const limiter = new RateLimiterMemory({

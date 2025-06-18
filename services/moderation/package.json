@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +24,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/node": "^22.15.30",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"

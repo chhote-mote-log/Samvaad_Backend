@@ -1,3 +1,5 @@
+//src: services/moderation/src/ingestion/errorHandler/errorHandler.ts
+// src/ingestion/errorHandler/errorHandler.ts
 import { producer } from '../../kafka/kafkaClient';
 import { TOPICS } from '../../kafka/topics';
 

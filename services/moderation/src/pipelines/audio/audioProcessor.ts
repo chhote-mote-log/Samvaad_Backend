@@ -3,7 +3,7 @@ import { TOPICS } from '../../kafka/topics';
 import { AudioModerationMessage } from './types';
 import { transcribeAudio } from './audioTranscriber';
 import { moderateText } from '../text/mode';
-import { buildFeedback } from '../../feedback/feedbackHandler';
+import { buildFeedback } from '../../feedback/ffeedbackHandler';
 import { dispatchFeedback } from '../../feedback/feedbackDispatcher';
 
 export async function startAudioModerationPipeline() {

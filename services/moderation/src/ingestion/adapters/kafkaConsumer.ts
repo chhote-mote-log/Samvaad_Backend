@@ -1,3 +1,4 @@
+// src/ingestion/adapters/kafkaConsumer.ts
 import { consumer } from '../../kafka/kafkaClient';
 import { TOPICS } from '../../kafka/topics';
 import { validateMessage } from '../validator/validator';
@@ -22,9 +23,9 @@ export async function startKafkaIngestion() {
         return;
       }
 
-      const isAllowed = await checkRateLimit(value.userId);
+      const isAllowed = await checkRateLimit(value!.userId);
       if (!isAllowed) {
-        console.warn(`⏳ Rate limit exceeded for user ${value.userId}`);
+        console.warn(`⏳ Rate limit exceeded for user ${value!.userId}`);
         return;
       }
 

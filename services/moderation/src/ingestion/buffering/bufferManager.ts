@@ -1,3 +1,4 @@
+// src: services/moderation/src/ingestion/buffering/bufferManager.ts
 import { DebateMessage } from '../types';
 
 type DebateBuffer = {

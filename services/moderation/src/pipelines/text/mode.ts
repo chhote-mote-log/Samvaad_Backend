@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const API_KEY = process.env.PERSPECTIVE_API_KEY;
-const API_URL = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${AIzaSyDt3s1p5HuHaqn8m7pn4iu-S5DwykwWiBU}`;
+const API_URL = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${API_KEY}`;
 
 export async function moderateText(msg: TextModerationMessage): Promise<{
   toxicScore: number;
