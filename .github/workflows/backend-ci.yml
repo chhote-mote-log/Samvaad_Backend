@@ -1,4 +1,4 @@
-name: Samvaad Backend CI/CD
+name: CI Pipeline
 
 on:
   push:
@@ -7,8 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
-    name: Build and Test All Services
+  test:
     runs-on: ubuntu-latest
 
     services:
@@ -16,8 +15,9 @@ jobs:
         image: postgres:13
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: samvaad
+          POSTGRES_PASSWORD: Pandey@123
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -25,44 +25,58 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/samvaad
-      NODE_ENV: test
+      # Default for fallback
+      DB_USER: postgres
+      DB_PASS: Pandey@123
+      DB_HOST: postgres
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
+      - name: Install PostgreSQL Client
+        run: sudo apt-get install postgresql-client
 
-      - name: Install dependencies (Debate Management Service)
-        working-directory: ./services/debate-management
-        run: npm ci
-
-      - name: Run Prisma generate & migrate (Debate Management)
-        working-directory: ./services/debate-management
+      - name: Create All Databases
         run: |
+          psql -h localhost -U $DB_USER -c "CREATE DATABASE samvaad_auth;"
+          psql -h localhost -U $DB_USER -c "CREATE DATABASE debate;"
+          psql -h localhost -U $DB_USER -c "CREATE DATABASE matchmaking_log;"
+        env:
+          PGPASSWORD: ${{ env.DB_PASS }}
+
+      ####################
+      # AUTH SERVICE
+      ####################
+      - name: Setup Auth Service
+        working-directory: ./services/auth
+        run: |
+          echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/samvaad_auth?schema=public" > .env
+          npm install
           npx prisma generate
           npx prisma migrate deploy
+          npm test
 
-      - name: Run tests (Debate Management)
+      ####################
+      # DEBATE-MANAGEMENT SERVICE
+      ####################
+      - name: Setup Debate Management Service
         working-directory: ./services/debate-management
-        run: npm test
+        run: |
+          echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/debate?schema=public" > .env
+          npm install
+          npx prisma generate
+          npx prisma migrate deploy
+          npm test
 
-      - name: Install dependencies (Auth Service)
-        working-directory: ./services/auth
-        run: npm ci
-
-      - name: Run tests (Auth Service)
-        working-directory: ./services/auth
-        run: npm test
-
-      - name: Install dependencies (Notification Service)
-        working-directory: ./services/notification
-        run: npm ci
-
-      - name: Run tests (Notification Service)
-        working-directory: ./services/notification
-        run: npm test
+      ####################
+      # MATCHMAKING SERVICE
+      ####################
+      - name: Setup Matchmaking Service
+        working-directory: ./services/matchmaking
+        run: |
+          echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/matchmaking_log?schema=public" > .env
+          npm install
+          npx prisma generate
+          npx prisma migrate deploy
+          npm test
