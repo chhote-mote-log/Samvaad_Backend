@@ -1,66 +1,69 @@
-// src/kafka/consumer.ts
 import { consumer, producer } from './kafkaClient';
 import { v4 as uuidv4 } from 'uuid';
+import { runTextModerationPipeline } from '../pipelines/text';
+// import { audioModerationPipeline } from '../pipelines/audio';
+// import { videoModerationPipeline } from '../pipelines/video';
+
+let isConsumerInitialized = false;
 
 export const startModerationConsumer = async () => {
-  await consumer.connect();
-  await producer.connect(); // If you want to send feedback back
-
-  await consumer.subscribe({ topic: 'moderation-request', fromBeginning: false });
-
-  console.log('✅ AI Moderation Consumer connected and listening to topic: moderation-request');
-
-  await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
-      try {
-        const value = message.value?.toString();
-        if (!value) return;
-
-        const data = JSON.parse(value);
-        const { sessionId, message: userMessage, userId } = data;
-
-        console.log(`🧠 Received message for moderation from session ${sessionId}:`, userMessage.content);
-
-        // 🔍 Dummy moderation logic
-        const feedback = moderateMessage(userMessage.content);
-
-        if (feedback.flagged) {
-          const moderationResult = {
-            sessionId,
-            userId,
-            message: userMessage.content,
-            feedback: feedback.reason,
-            severity: feedback.severity,
-            timestamp: Date.now(),
-            moderationId: uuidv4()
-          };
-
-          // ✅ Send to moderation-feedback topic
-          await producer.send({
-            topic: 'moderation-feedback',
-            messages: [{ key: sessionId, value: JSON.stringify(moderationResult) }]
-          });
-
-          console.log('✅ Sent moderation feedback:', moderationResult);
-        }
-
-      } catch (err) {
-        console.error('❌ Error processing moderation message:', err);
-      }
-    }
-  });
-};
-
-// Example moderation logic
-function moderateMessage(content: string) {
-  if (content.includes('badword')) {
-    return {
-      flagged: true,
-      reason: 'Inappropriate language detected',
-      severity: 'high'
-    };
+  if (isConsumerInitialized) {
+    console.warn('⚠️ Consumer already initialized. Skipping...');
+    return;
   }
-  return {
-    flagged: false
-  };
-}
+
+  try {
+    await consumer.connect();
+    await producer.connect();
+
+    console.log('✅ Kafka client connected');
+
+    await consumer.subscribe({ topic: 'moderation.request', fromBeginning: false });
+    console.log('✅ Subscribed to topic: moderation.request');
+
+    await consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        try {
+          const value = message.value?.toString();
+          if (!value) return;
+
+          const data = JSON.parse(value);
+          const { sessionId, message: userMessage, userId, contentType } = data;
+
+          if (!sessionId) {
+            console.warn('⚠️ sessionId missing in message:', userMessage);
+            return;
+          }
+          if (!contentType) {
+            console.warn('⚠️ contentType missing in message:', userMessage);
+            return;
+          }
+
+          console.log(`🧠 Routing ${contentType} message for moderation from session ${sessionId}`);
+
+          switch (contentType) {
+            case 'text':
+              await runTextModerationPipeline(data);
+              break;
+            case 'audio':
+              // await audioModerationPipeline(data);
+              break;
+            case 'video':
+              // await videoModerationPipeline(data);
+              break;
+            default:
+              console.warn(`⚠️ Unknown contentType "${contentType}"`);
+          }
+
+        } catch (err) {
+          console.error('❌ Error processing moderation message:', err);
+        }
+      }
+    });
+
+    isConsumerInitialized = true;
+  } catch (err) {
+    console.error('❌ Failed to initialize Kafka consumer:', err);
+    throw err;
+  }
+};

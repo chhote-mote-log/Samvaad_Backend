@@ -4,33 +4,30 @@ import { moderateText } from './mode';
 import { cleanText } from './preprocessor';
 import { TextModerationMessage } from './types';
 
-export async function startTextModerationPipeline() {
-  await consumer.connect();
-  await consumer.subscribe({ topic: TOPICS.TEXT_MODERATION });
+export async function startTextModerationPipeline(data: TextModerationMessage) {
+  
+  // await consumer.run({
+  //   eachMessage: async ({ message }) => {
+      if (!data) return;
 
-  await consumer.run({
-    eachMessage: async ({ message }) => {
-      if (!message.value) return;
-      const raw = JSON.parse(message.value.toString()) as TextModerationMessage;
-
-      raw.content = cleanText(raw.content);
-      const result = await moderateText(raw);
-
+      data.message.content = cleanText(data.message.content);
+      const result = await moderateText(data);
+      console.log('🧠 Moderation result:', result);
       const moderationResult = {
-        ...raw,
+        ...data,
         result: {
-          toxicScore: result.toxicScore,
-          flagged: result.flagged,
+          feedback: result.feedback,
         },
+
       };
 
       console.log('🧠 Moderation result:', moderationResult);
 
       // Optionally send to Kafka or DB
-      await producer.send({
-        topic: TOPICS.MODERATION_RESULT,
-        messages: [{ value: JSON.stringify(moderationResult) }],
-      });
-    },
-  });
+      // await producer.send({
+      //   topic: TOPICS.MODERATION_RESULT,
+      //   messages: [{ value: JSON.stringify(moderationResult) }],
+      // });
+  //   },
+  // });
 }

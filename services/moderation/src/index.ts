@@ -4,7 +4,7 @@ dotenv.config();
 
 import express from 'express';
 import {httpRouter} from './ingestion/adapters/httpListener';
-import { startIngestionLayer } from './ingestion/ingestionController';
+// import { startIngestionLayer } from './ingestion/ingestionController';
 import { startModerationConsumer } from './kafka/consumer';
 
 const app = express();
@@ -21,7 +21,7 @@ app.listen(PORT, async () => {
 
   try {
     console.log('⏳ Starting ingestion layer...');
-    await startIngestionLayer();
+    // await startIngestionLayer();
     console.log('✅ Ingestion layer ready');
 
     console.log('⏳ Starting moderation pipeline...');

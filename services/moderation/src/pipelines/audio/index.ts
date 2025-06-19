@@ -1,8 +1,8 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
+// import * as dotenv from 'dotenv';
+// dotenv.config();
 
-import { startAudioModerationPipeline } from './audioProcessor';
+// // import { startAudioModerationPipeline } from './audioProcessor';
 
-startAudioModerationPipeline()
-  .then(() => console.log('🎧 Audio Moderation Pipeline running...'))
-  .catch(console.error);
+// startAudioModerationPipeline()
+//   .then(() => console.log('🎧 Audio Moderation Pipeline running...'))
+//   .catch(console.error);

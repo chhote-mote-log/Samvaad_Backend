@@ -1,22 +1,16 @@
 // src/kafka/producer.ts
-import { Kafka } from 'kafkajs';
+import {kafkaProducer} from './kafkaService';
 
-const kafka = new Kafka({
-  clientId: 'debate-session-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
-});
-
-const producer = kafka.producer();
 
 export const initProducer = async () => {
-  await producer.connect();
+  await kafkaProducer.connect();
   console.log("✅ Kafka Producer connected");
 };
 
 export const sendToModeration = async (data: any) => {
   try {
-    await producer.send({
-      topic: 'moderation-request',
+    await kafkaProducer.send({
+      topic: 'moderation.request',
       messages: [
         {
           key: data.sessionId,

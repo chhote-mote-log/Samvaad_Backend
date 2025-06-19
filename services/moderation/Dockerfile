@@ -1,19 +1,23 @@
-# Step 1: Base image
+# Use Node.js image
 FROM node:18-alpine
 
-
-# Step 2: Set working directory
+# Set working directory
 WORKDIR /app
 
-# Step 3: Copy package files and install dependencies
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Step 4: Copy source code
+# Copy source files
 COPY . .
 
-# Step 5: Build TypeScript code
+# Build TypeScript -> JavaScript in dist/
 RUN npm run build
 
-# Step 6: Run production server
+# Expose port
+EXPOSE 4005
+
+# Start app
 CMD ["node", "dist/index.js"]

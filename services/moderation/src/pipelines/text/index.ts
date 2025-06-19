@@ -1,5 +1,8 @@
 import { startTextModerationPipeline } from './textProcessor';
+import { TextModerationMessage } from './types';
 
-startTextModerationPipeline()
-  .then(() => console.log('🧠 Text Moderation Pipeline running...'))
-  .catch((err) => console.error('Failed to start pipeline:', err));
+export async function runTextModerationPipeline(data: TextModerationMessage) {
+  await startTextModerationPipeline(data)
+    .then(() => console.log('🧠 Text Moderation Pipeline running...'))
+    .catch((err) => console.error('Failed to start pipeline:', err));
+}

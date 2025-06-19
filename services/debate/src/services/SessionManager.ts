@@ -219,7 +219,7 @@ class SessionManager extends EventEmitter {
     if (session.state !== "ongoing") throw new Error(`Cannot add message when session state is ${session.state}`);
 
     RuleEngine.validateMessage(sessionId, message);
-    if (message.senderId !== session.currentTurn) throw new Error(`It's not participant ${message.senderId}'s turn.`);
+    // if (message.senderId !== session.currentTurn) throw new Error(`It's not participant ${message.senderId}'s turn.`);
 
     session.messages.push(message);
     await dbConnector.addMessage(sessionId, message);
@@ -230,10 +230,10 @@ class SessionManager extends EventEmitter {
     session.currentTurn = otherParticipant.id;
     await saveSessionToRedis(sessionId, session);
 
-    this.timerController.startTimer(sessionId);
+    // this.timerController.startTimer(sessionId);
     this.emit("message_added", session, message);
-    this.emit("turn_changed", session.currentTurn, session);
-    this.notifyMicStatus(sessionId);
+    // this.emit("turn_changed", session.currentTurn, session);
+    // this.notifyMicStatus(sessionId);
     return true;
   }
 

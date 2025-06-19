@@ -1,6 +1,13 @@
 export interface TextModerationMessage {
-  debateId: string;
+  sessionId: string;
   userId: string;
-  content: string;
+  message: TextMessage;
+  contentType: 'string';
   timestamp: number;
+}
+export interface TextMessage {
+  type: 'text';
+  timestamp: number;
+  senderId: string;
+  content: string; // Optional, if language detection is implemented
 }
