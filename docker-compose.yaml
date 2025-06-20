@@ -53,6 +53,19 @@ services:
         condition: service_healthy
     networks:
       - samvaad-network
+  moderation:
+    build:
+      context: ./services/moderation
+    ports:
+      - "4005:4005"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - DEEPSEEK_API_KEY=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
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - samvaad-network   
   # auth:
   #   build:
   #     context: ./services/auth

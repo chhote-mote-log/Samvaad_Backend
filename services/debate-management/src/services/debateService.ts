@@ -57,13 +57,16 @@ export async function startDebate(id: string) {
 
   // Send Kafka event
   await kafkaProducer.send({
-    topic: 'debate.started',
+    topic: 'debate.session.start',
     messages: [
       {
         key: id,
         value: JSON.stringify({
           debateId: id,
           settings: {
+            topic:debate.topic,
+            visibility:debate.visibility,
+            type:debate.type,
             mode: debate.mode,
             duration: debate.duration_minutes,
             chatEnabled: debate.chat_enabled,

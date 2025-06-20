@@ -39,11 +39,11 @@ model Debate {
   id              String     @id @default(uuid())
   title           String
   topic           String
-  type            String
-  mode            String
+  type            DebateType
+  mode            DebateMode
   chat_enabled    Boolean
-  participants       DebateParticipant[]
-  visibility      String
+  participants    DebateParticipant[]
+  visibility      Visibility
   duration_minutes Int
   ai_moderation   Boolean
   created_by      String
