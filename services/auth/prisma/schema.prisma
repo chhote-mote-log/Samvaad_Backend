@@ -30,6 +30,7 @@ model User {
   is_online              Boolean  @default(false)
   socket_id              String?
   level                  Int      @default(1)
+  // title                  String   @default("Newbie") 
   rank                   String   @default("Bronze")
   elo_rating             Int      @default(1000)
   xp                     Int      @default(0)

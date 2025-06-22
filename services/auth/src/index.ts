@@ -4,7 +4,8 @@ import cors from 'cors';
 import { json } from 'body-parser';
 import authRoutes from './route/authRoutes';
 import userRoutes from './route/userRoute';
-import { kafkaConsumer } from './services/kafka/kafkaConsumer';
+// import { kafkaConsumer } from './services/kafka/kafkaConsumer';
+import { runUserConsumer } from "./services/kafka/kafkaConsumer";
 import { connectProducer } from './services/kafka/kafkaProducer';
 
 const app = express();
@@ -13,15 +14,15 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
 app.use(json());
 
-app.use('/auth', authRoutes);
-app.use('/user', userRoutes);
+app.use('/', authRoutes);
+// app.use('/user', userRoutes);
 
 const startServer = async () => {
   try {
     // Connect producer and consumer before starting server
     console.log('Kafka producer connected successfully');
     await connectProducer();
-    await kafkaConsumer();
+    await runUserConsumer();
 
     app.listen(4000, () => {
       console.log('Auth service running on port 4000');
