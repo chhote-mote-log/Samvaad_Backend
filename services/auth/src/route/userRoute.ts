@@ -20,6 +20,6 @@ router.patch("/me/preferences", updatePreferences);
 router.patch("/me/settings", updateNotificationSettings);
 
 // Public profile
-router.get("/users/:id", getPublicProfile);
+router.get("/:id", getPublicProfile);
 
 export default router;

@@ -3,7 +3,7 @@
 import { sessionManager } from './SessionManager';
 import { saveSessionToRedis } from './SessionManager';
 type DebateType = 'text' | 'audio' | 'video';
-type DebateCategory = 'professional' | 'unprofessional';
+type DebateMode = 'professional' | 'unprofessional';
 type DebateStatus = 'waiting' | 'in_progress' | 'ended';
 
 // interface ParticipantState {
@@ -59,8 +59,8 @@ export class RuleViolationError extends Error {
 export class RuleEngine {
   private static lastMessageTimestamps: Record<string, number> = {};
 
-  private static containsProfanity(text: string, category: DebateCategory): boolean {
-    if (category === 'unprofessional') return false;
+  private static containsProfanity(text: string, mode: DebateMode): boolean {
+    if (mode === 'unprofessional') return false;
     const lowerText = text.toLowerCase();
     for (const word of PROFANITY_LIST) {
       const regex = new RegExp(`\\b${word}\\b`, 'i');
@@ -143,7 +143,7 @@ export class RuleEngine {
   const session = await sessionManager.getSession(sessionId);
   if (!session) throw new RuleViolationError('Debate session not found.');
 
-  const relaxed = session.rules.relaxedMode || session.category === 'unprofessional';
+  const relaxed = session.rules.relaxedMode || session.mode === 'unprofessional';
 
   if (session.state !== 'ongoing') {
     throw new RuleViolationError('Debate is not ongoing; messages are not accepted.');
@@ -176,7 +176,7 @@ export class RuleEngine {
     throw new RuleViolationError(`Message too long; maximum allowed length is ${MAX_MESSAGE_LENGTH} characters.`);
   }
 
-  if (!relaxed && this.containsProfanity(message.content, session.category)) {
+  if (!relaxed && this.containsProfanity(message.content, session.mode)) {
     throw new RuleViolationError('Message contains inappropriate language.');
   }
 

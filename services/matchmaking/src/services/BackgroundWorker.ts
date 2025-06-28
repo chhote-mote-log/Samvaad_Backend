@@ -98,7 +98,6 @@ export class BackgroundWorker {
                 debateType: a.debateType,
                 mode: a.mode,
                 duration_minutes: 10,
-                title: "AI vs Humanity",
                 visibility: "PUBLIC",
                 ai_moderation: true,
                 chat_enabled: true,

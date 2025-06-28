@@ -7,9 +7,11 @@ export interface MatchRequest {
   userId: string;
   debateType: "professional" | "unprofessional";
   mode: "text" | "audio" | "video";
-  elo?: number; // optional, for future use
+  elo: number; // optional, for future use
   language?: string;
-  timestamp?: number;
+  chat_enabled?: boolean;
+  ai_moderation?: boolean;
+  timestamp: number;
 }
 
 export const QueueManager = {

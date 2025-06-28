@@ -3,6 +3,7 @@ import { TOPICS } from '../../kafka/topics';
 import { moderateText } from './mode';
 import { cleanText } from './preprocessor';
 import { TextModerationMessage } from './types';
+import { sendModerationResult } from '../../kafka/producer';
 
 export async function startTextModerationPipeline(data: TextModerationMessage) {
   
@@ -10,19 +11,17 @@ export async function startTextModerationPipeline(data: TextModerationMessage) {
   //   eachMessage: async ({ message }) => {
       if (!data) return;
 
-      data.message.content = cleanText(data.message.content);
+      data.content = cleanText(data.content);
       const result = await moderateText(data);
       console.log('🧠 Moderation result:', result);
       const moderationResult = {
-        ...data,
-        result: {
-          feedback: result.feedback,
-        },
-
+        result: result,
       };
 
-      console.log('🧠 Moderation result:', moderationResult);
+      console.log('🧠 Moderation result:', result);
 
+
+      await sendModerationResult(result);
       // Optionally send to Kafka or DB
       // await producer.send({
       //   topic: TOPICS.MODERATION_RESULT,

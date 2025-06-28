@@ -93,8 +93,15 @@ async function handleMatchFound(payload: any) {
       debateId: sessionId ?? "",
       user1: { id: payload.users?.[0], name: "User One" },
       user2: { id: payload.users?.[1], name: "User Two" },
-      topic: payload.title ?? "Untitled Debate",
+      topic: payload.title ?? "AI vs Humanity",
       debateType: payload.debateType,
+      mode: payload.mode,
+      visibility: payload.visibility ?? "PUBLIC",
+      chat_enabled: payload.chat_enabled ?? true,
+      ai_moderation: payload.ai_moderation ?? true,
+      turn_duration: 30, // Default turn duration
+      duration_minutes: payload.duration_minutes ?? 15,
+      language: payload.language ?? "en",
     });
 
     console.log("✅ Debate created and sent to session service");

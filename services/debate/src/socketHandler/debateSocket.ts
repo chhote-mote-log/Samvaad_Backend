@@ -16,7 +16,7 @@ export const setupSocketHandlers = (io: Server) => {
         if (!sessionId || !userId) {
           throw new Error("sessionId and userId are required");
         }
-        
+
         socket.data.userId = userId;
 
         // Mark connected
@@ -61,15 +61,40 @@ export const setupSocketHandlers = (io: Server) => {
     socket.on("send_message", async ({ sessionId, message }) => {
       try {
         message.timestamp = Date.now();
-        await sessionManager.addMessage(sessionId, message);
+        const messageId = await sessionManager.addMessage(sessionId, message);
+        if (!messageId) {
+          throw new Error("Failed to persist message");
+        }
         io.to(sessionId).emit("new_message", message);
+
+        const session = await sessionManager.getSession(sessionId);
+        if (!session) {
+          throw new Error(`Session ${sessionId} not found`);
+        }
+        const senderId =
+          message.senderId || message.userId || socket.data.userId;
+        const receiver = session?.participants.find((p) => p.id !== senderId);
+        const receiverId = receiver?.id ?? "unknown";
+
         await sendToModeration({
-          sessionId,
-          message,
-          contentType: "text",
-          userId: message.userId,
+          sessionId, // or debateId
+          messageId,
+          senderId,
+          receiverId,
+          content: message.content,
           timestamp: message.timestamp,
+          language: session.language,
+          turn_number: session.messages.length,
+          mode: session.mode,
+          type: session.type,
+          topic: session.topic,
+          rules: session.rules,
+          context: {
+            previousMessages: session.messages.slice(-5), // Optional context for AI
+          },
+          contentType: "text",
         });
+
         console.log(`📩 Message sent in session ${sessionId}:`, message);
       } catch (err: any) {
         console.error("Error in send_message:", err);

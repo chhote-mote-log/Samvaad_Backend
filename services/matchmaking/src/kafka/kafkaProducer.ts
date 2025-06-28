@@ -1,5 +1,9 @@
 import { KafkaService } from "./kafkaService";
-
+interface UserMatchPayload {
+  userId:string;
+  elo?: number; // optional, for future use
+  language?: string;
+}
 const TOPIC = "matchmaking.match.found";
 
 export const MatchProducer = {
@@ -16,6 +20,7 @@ export const MatchProducer = {
     ai_moderation?: boolean;
     chat_enabled?: boolean;
     language?: string;
+    rated?: boolean;
     timestamp: number;
   }) {
     try {

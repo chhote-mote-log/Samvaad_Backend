@@ -1,5 +1,5 @@
-//path: services/debate/src/services/ParticipantTracker.ts
 import EventEmitter from 'events';
+import redis from '../utils/redisClient';
 import { dbConnector } from './DBConnector';
 
 export interface DebateParticipant {
@@ -14,38 +14,25 @@ export interface ParticipantStatus {
   isConnected: boolean;
   lastSeen: number; // timestamp
 }
-type StatusMap = Map<string, ParticipantStatus>;
 
 export class ParticipantTracker extends EventEmitter {
-  private sessionParticipantsStatus: Map<string, Map<string, ParticipantStatus>>;
-   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-  constructor() {
-    super();
-    this.sessionParticipantsStatus = new Map();
+  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+
+  private getRedisKey(sessionId: string, participantId: string) {
+    return `participant_status:${sessionId}:${participantId}`;
   }
 
   async addParticipant(sessionId: string, participant: DebateParticipant): Promise<void> {
-    console.log(participant)
-  if (!participant || !participant.id) {
-    throw new Error(`Invalid participant provided for session ${sessionId}`);
-  }
-    if (!this.sessionParticipantsStatus.has(sessionId)) {
-      this.sessionParticipantsStatus.set(sessionId, new Map());
+    if (!participant || !participant.id) {
+      throw new Error(`Invalid participant provided for session ${sessionId}`);
     }
 
-    const participantMap = this.sessionParticipantsStatus.get(sessionId)!;
-
-    if (participantMap.has(participant.id)) {
-      throw new Error(`Participant ${participant.id} already tracked in session ${sessionId}`);
-    }
-
-    // In-memory tracking
-    participantMap.set(participant.id, {
+    const status: ParticipantStatus = {
       isConnected: true,
       lastSeen: Date.now(),
-    });
-    
-    this.sessionParticipantsStatus.set(sessionId, participantMap);
+    };
+
+    await this.setStatusInRedis(sessionId, participant.id, status);
 
     // DB persistence
     try {
@@ -64,105 +51,86 @@ export class ParticipantTracker extends EventEmitter {
   }
 
   async markConnected(sessionId: string, participantId: string): Promise<void> {
-    const participantMap = this.sessionParticipantsStatus.get(sessionId);
-    if (!participantMap || !participantMap.has(participantId)) {
-      throw new Error(`Participant ${participantId} not found in session ${sessionId}`);
-    }
-
-    // In-memory update
-    participantMap.set(participantId, {
+    const status: ParticipantStatus = {
       isConnected: true,
       lastSeen: Date.now(),
-    });
+    };
 
-    // DB update
-    // try {
-    //  await dbConnector.markParticipantConnected(participantId)
-    // } catch (err) {
-    //   console.error(`DB error in markConnected:`, err);
-    // }
+    await this.setStatusInRedis(sessionId, participantId, status);
     this.scheduleDebouncedDBUpdate(participantId, true);
     this.emit('participant_connected', sessionId, participantId);
   }
 
   async markDisconnected(sessionId: string, participantId: string): Promise<void> {
-    const participantMap = this.sessionParticipantsStatus.get(sessionId);
-    if (!participantMap || !participantMap.has(participantId)) {
-      throw new Error(`Participant ${participantId} not found in session ${sessionId}`);
-    }
-
-    // In-memory update
-    participantMap.set(participantId, {
+    const status: ParticipantStatus = {
       isConnected: false,
       lastSeen: Date.now(),
-    });
+    };
 
-    // DB update
-    // try {
-    //   await dbConnector.markParticipantDisconnected(participantId);
-    // } catch (err) {
-    //   console.error(`DB error in markDisconnected:`, err);
-    // }
+    await this.setStatusInRedis(sessionId, participantId, status);
     this.scheduleDebouncedDBUpdate(participantId, false);
-
     this.emit('participant_disconnected', sessionId, participantId);
   }
 
-  isConnected(sessionId: string, participantId: string): boolean {
-    const participantMap = this.sessionParticipantsStatus.get(sessionId);
-    if (!participantMap) return false;
-
-    const status = participantMap.get(participantId);
-    if (!status) return false;
-
-    return status.isConnected;
-  }
-  isParticipantInSession(sessionId: string, participantId: string): boolean {
-  const participantMap = this.sessionParticipantsStatus.get(sessionId);
-  if (!participantMap) return false;
-
-  return participantMap.has(participantId);
+  async isConnected(sessionId: string, participantId: string): Promise<boolean> {
+    const status = await this.getStatusFromRedis(sessionId, participantId);
+    return status?.isConnected ?? false;
   }
 
-  getSessionStatus(sessionId: string): Record<string, ParticipantStatus> {
-    const participantMap = this.sessionParticipantsStatus.get(sessionId);
-    if (!participantMap) return {};
+  async isParticipantInSession(sessionId: string, participantId: string): Promise<boolean> {
+    const status = await this.getStatusFromRedis(sessionId, participantId);
+    return !!status;
+  }
 
+  async getSessionStatus(sessionId: string): Promise<Record<string, ParticipantStatus>> {
+    const keys = await redis.keys(`participant_status:${sessionId}:*`);
     const result: Record<string, ParticipantStatus> = {};
-    participantMap.forEach((status, participantId) => {
-      result[participantId] = status;
-    });
+
+    for (const key of keys) {
+      const participantId = key.split(':').pop();
+      const data = await redis.get(key);
+      if (data && participantId) {
+        result[participantId] = JSON.parse(data);
+      }
+    }
+
     return result;
   }
 
   async removeSession(sessionId: string): Promise<void> {
-    this.sessionParticipantsStatus.delete(sessionId);
-
-    // Optional: clean up DB
-    // try {
-    //    await dbConnector.removeParticipantsBySession(sessionId);
-    // } catch (err) {
-    //   console.error(`DB error in removeSession:`, err);
-    // }
-
+    const keys = await redis.keys(`participant_status:${sessionId}:*`);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
     this.emit('session_removed', sessionId);
   }
-  
+
+  private async setStatusInRedis(sessionId: string, participantId: string, status: ParticipantStatus): Promise<void> {
+    const key = this.getRedisKey(sessionId, participantId);
+    await redis.set(key, JSON.stringify(status), 'EX', 3600); // 1 hour expiry
+  }
+
+  private async getStatusFromRedis(sessionId: string, participantId: string): Promise<ParticipantStatus | null> {
+    const key = this.getRedisKey(sessionId, participantId);
+    const data = await redis.get(key);
+    return data ? JSON.parse(data) : null;
+  }
+
   private scheduleDebouncedDBUpdate(participantId: string, isConnected: boolean): void {
     if (this.debounceTimers.has(participantId)) {
       clearTimeout(this.debounceTimers.get(participantId)!);
     }
 
     const timer = setTimeout(async () => {
-      // try {
-      //   if (isConnected) {
-      //     await dbConnector.markParticipantConnected(participantId);
-      //   } else {
-      //     await dbConnector.markParticipantDisconnected(participantId);
-      //   }
-      // } catch (err) {
-      //   console.error(`DB error in debounced ${isConnected ? 'connect' : 'disconnect'}:`, err);
-      // }
+      try {
+        if (isConnected) {
+          await dbConnector.markParticipantConnected(participantId);
+        } else {
+          await dbConnector.markParticipantDisconnected(participantId);
+        }
+      } catch (err) {
+        console.error(`DB error in debounced ${isConnected ? 'connect' : 'disconnect'}:`, err);
+      }
       this.debounceTimers.delete(participantId);
     }, 3000); // 3 seconds debounce
 

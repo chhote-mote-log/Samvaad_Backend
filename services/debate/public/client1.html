@@ -15,7 +15,10 @@
   <div id="messages"></div>
 
   <script>
-    const socket = io('http://localhost:4006'); // match server port
+    const socket = io('http://localhost:4006'); // Update with your actual socket server URL if needed
+
+    let sessionId = null;
+    let userId = null;
 
     socket.on('connect', () => {
       document.getElementById('status').innerText = '✅ Connected to Socket Server';
@@ -45,20 +48,30 @@
     });
 
     function joinSession() {
-      const sessionId = prompt("Enter Session ID:");
-      const senderId = prompt("Enter Your User ID:");
-      socket.emit('join_session', { sessionId, userId:senderId }); 
+      sessionId = prompt("Enter Session ID:");
+      userId = prompt("Enter Your User ID:");
+
+      if (!sessionId || !userId) {
+        alert("❗ Session ID and User ID are required");
+        return;
+      }
+
+      socket.emit('join_session', { sessionId, userId });
     }
 
     function sendMessage() {
-      const sessionId = prompt("Enter Session ID:");
-      const senderId = prompt("Enter Your User ID:");
+      if (!sessionId || !userId) {
+        alert("❗ Please join a session first");
+        return;
+      }
+
       const content = prompt("Enter message:");
-      
+      if (!content) return;
+
       socket.emit('send_message', {
         sessionId,
         message: {
-          senderId,
+          senderId: userId,
           content,
           timestamp: Date.now(),
           type: 'chat'

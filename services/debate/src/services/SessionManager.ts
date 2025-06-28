@@ -1,6 +1,6 @@
 // src/services/SessionManager.ts
 import redis from '../utils/redisClient';
-import { DebateSession, DebateParticipant, DebateMessage, ChatMessage } from '../utils/types';
+import { DebateSession, DebateParticipant, DebateMessage, ChatMessage, DebateType, DebateCategory } from '../utils/types';
 
 import EventEmitter from 'events';
 import { RuleEngine } from './RuleEngine';
@@ -76,21 +76,26 @@ class SessionManager extends EventEmitter {
     this.timerController.startTimer(sessionId);
   }
 
-  async createSession(sessionId: string, participant1: DebateParticipant, participant2: DebateParticipant): Promise<DebateSession> {
+  async createSession(sessionId: string, participant1: DebateParticipant, participant2: DebateParticipant, topic: string, debateType: DebateType, mode: DebateCategory, visibility: string, chatEnabled: boolean, aiModeration: boolean, turnDuration: number, durationMinutes: number, language: string): Promise<DebateSession> {
     const existing = await getSessionFromRedis(sessionId);
     if (existing) throw new Error(`Session with id ${sessionId} already exists.`);
 
     const session: DebateSession = {
       sessionId,
       participants: [participant1, participant2],
-      type: "text",
-      category: "professional",
-      durationMins: 30,
+      topic: topic || "Untitled Debate",
+      type: debateType || "professional",
+      mode: mode || "text",
+      visibility: visibility || "PUBLIC",
+      chat_enabled: chatEnabled || true,
+      ai_moderation: aiModeration || true,
+      durationMins: durationMinutes || 30,
+      language: language || "en",
       messages: [],
       chatMessages: [],
       turnStartedAt: null,
       rules: {
-        turnDurationSecs: 60,
+        turnDurationSecs: turnDuration || 60,
         allowChat: true,
         allowVoice: true,
         relaxedMode: true,
@@ -213,7 +218,7 @@ class SessionManager extends EventEmitter {
     return true;
   }
 
-  async addMessage(sessionId: string, message: DebateMessage): Promise<boolean> {
+  async addMessage(sessionId: string, message: DebateMessage): Promise<string> {
     const session = await this.getSession(sessionId);
     if (!session) throw new Error(`Session ${sessionId} not found.`);
     if (session.state !== "ongoing") throw new Error(`Cannot add message when session state is ${session.state}`);
@@ -222,8 +227,10 @@ class SessionManager extends EventEmitter {
     // if (message.senderId !== session.currentTurn) throw new Error(`It's not participant ${message.senderId}'s turn.`);
 
     session.messages.push(message);
-    await dbConnector.addMessage(sessionId, message);
-
+    const newMessage = await dbConnector.addMessage(sessionId, message);
+    if (!newMessage || !newMessage.id) {
+    throw new Error(`Failed to persist message for session ${sessionId}`);
+   }
     const otherParticipant = session.participants.find((p) => p.id !== message.senderId);
     if (!otherParticipant) throw new Error(`Other participant not found in session ${sessionId}`);
 
@@ -234,7 +241,7 @@ class SessionManager extends EventEmitter {
     this.emit("message_added", session, message);
     // this.emit("turn_changed", session.currentTurn, session);
     // this.notifyMicStatus(sessionId);
-    return true;
+    return newMessage.id || "";
   }
 
   async addChatMessage(sessionId: string, message: ChatMessage): Promise<boolean> {

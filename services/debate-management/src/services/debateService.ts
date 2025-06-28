@@ -57,16 +57,13 @@ export async function startDebate(id: string) {
 
   // Send Kafka event
   await kafkaProducer.send({
-    topic: 'debate.session.start',
+    topic: 'debate.started',
     messages: [
       {
         key: id,
         value: JSON.stringify({
           debateId: id,
           settings: {
-            topic:debate.topic,
-            visibility:debate.visibility,
-            type:debate.type,
             mode: debate.mode,
             duration: debate.duration_minutes,
             chatEnabled: debate.chat_enabled,
@@ -163,9 +160,9 @@ export async function createDebateFromMatch(payload: {
     mode: payload.mode || "TEXT",
     visibility: payload.visibility || "PUBLIC",
     created_by: payload.created_by || payload.users[0], // Fallback
-    duration_minutes: 15,
-    chat_enabled: true,
-    ai_moderation: true,
+    duration_minutes: payload.duration_minutes || 15,
+    chat_enabled: payload.chat_enabled ?? true,
+    ai_moderation: payload.ai_moderation ?? true,
     status: DebateStatus.WAITING,
     xp_reward: 100,
     tags: ["auto", "match"],

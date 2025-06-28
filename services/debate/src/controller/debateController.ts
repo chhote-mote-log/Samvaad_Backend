@@ -5,17 +5,45 @@ import { DebateParticipant, DebateMessage } from '../utils/types';
 import { participantTracker } from '../services/ParticipantTracker';
 
  const DebateController = {
-  async createSession(req: Request, res: Response) {
-    const { sessionId, participant1, participant2 } = req.body;
+ async createSession(req: Request, res: Response) {
+  const {
+    sessionId,
+    participant1,
+    participant2,
+    topic,
+    debateType,
+    mode,
+    visibility,
+    chatEnabled,
+    aiModeration,
+    turnDuration,
+    durationMinutes,
+    language,
+  } = req.body;
 
-    try {
-      const session = await sessionManager.createSession(sessionId, participant1, participant2);
-      res.status(201).json({ message: 'Session created', session });
-    } catch (err: any) {
-      console.error('Create session failed:', err);
-      res.status(400).json({ error: err.message });
-    }
-  },
+  try {
+    const session = await sessionManager.createSession(
+      sessionId,
+      participant1,
+      participant2,
+      topic,
+      debateType,
+      mode,
+      visibility,
+      chatEnabled,
+      aiModeration,
+      turnDuration,
+      durationMinutes,
+      language
+    );
+
+    res.status(201).json({ message: 'Session created', session });
+  } catch (err: any) {
+    console.error('Create session failed:', err);
+    res.status(400).json({ error: err.message });
+  }
+}
+,
 
   async startSession(req: Request, res: Response) {
     const { sessionId } = req.params;
